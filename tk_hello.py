@@ -49,6 +49,13 @@ entry2=Entry(myWindow)
 entry1.grid(row=0, column=1)
 entry2.grid(row=1, column=1)
 
+def format_number(x):
+    value = re.compile(r'^\s*[-+]*[0-9]+\.*[0-9]*\s*$')
+    if value.match(str(x)): #不是数字
+        return x
+    else:
+        # print('x2:>>>', str(x))
+        return 0
 
 def chart_maker(writer, sheetname, charttype, sheetdata):
     workbook = writer.book
@@ -157,10 +164,10 @@ def project_analysis():
     #print(databuff['YearMonth'])
 
     
-    location_raw = databuff.groupby(r'项目地区').size().reset_index(name='counts')
+    location_raw = databuff.groupby([r'项目地区', 'YearMonth']).size().reset_index(name='counts')
     location_data =  location_raw.sort_values('counts', ascending=False)
 
-    system_raw = databuff.groupby(r'系统').size().reset_index(name='counts')
+    system_raw = databuff.groupby([r'系统', 'YearMonth']).size().reset_index(name='counts')
     system_data = system_raw.sort_values('counts', ascending=False)
 
     project_state_data = databuff.groupby([r'项目状态', 'YearMonth']).size().reset_index(name='counts')
@@ -174,10 +181,10 @@ def project_analysis():
     print(project_state_data)
     #project_state_data = project_state_raw.sort_values('counts', ascending=False)
     
-    Contract_signing_raw = databuff.groupby(r'合同是否签订').size().reset_index(name='counts')
+    Contract_signing_raw = databuff.groupby([r'合同是否签订', 'YearMonth']).size().reset_index(name='counts')
     Contract_signing_data = Contract_signing_raw.sort_values('counts', ascending=False)
 
-    chip_maker_raw = databuff.groupby(r'芯片厂商').size().reset_index(name='counts')
+    chip_maker_raw = databuff.groupby([r'芯片厂商', 'YearMonth']).size().reset_index(name='counts')
     chip_maker_data = chip_maker_raw.sort_values('counts', ascending=False)
     
     with pd.ExcelWriter('Iot_project_statistics.xlsx') as writer:  
@@ -189,11 +196,11 @@ def project_analysis():
         chip_maker_data.to_excel(writer, sheet_name=r'芯片厂商', index=False)
         
         # chart_maker(writer, r'项目数', 'column',people_data)               
-        chart_maker(writer, r'地区统计', 'pie',location_data)
-        chart_maker(writer, r'产品平台与行业', 'pie',system_data)               
-        chart_maker(writer, r'项目状态', 'pie',project_state_data)
-        chart_maker(writer, r'商务数据', 'pie',Contract_signing_data)               
-        chart_maker(writer, r'芯片厂商', 'column',chip_maker_data)
+        # chart_maker(writer, r'地区统计', 'pie',location_data)
+        #chart_maker(writer, r'产品平台与行业', 'pie',system_data)               
+        #chart_maker(writer, r'项目状态', 'pie',project_state_data)
+        #chart_maker(writer, r'商务数据', 'pie',Contract_signing_data)               
+       # chart_maker(writer, r'芯片厂商', 'column',chip_maker_data)
         
         # Close the Pandas Excel writer and output the Excel file.
         writer.save()        
@@ -212,8 +219,14 @@ def agreement_analysis():
     #agreement_data = databuff['BD'].str.contains('2020', re.IGNORECASE).groupby(databuff[r'合同归属']).sum()
     #df = df.groupby(['category']).filter(lambda x: len(x) >= 5)
    # agreement_raw = databuff.groupby([r'签署月份']).filter(lambda x: '2020' in str(x)).reset_index()
-    agreement_data = databuff.groupby([name,r'签署月份'] ).size().reset_index(name='counts')    
-    agreement_data.to_excel("agreement_analysis.xlsx")
+    databuff[r'先收费'] = databuff[r'先收费'].apply(format_number)
+    agreement_pro_count = databuff.groupby([name,r'签署月份']).size().reset_index(name='counts')
+    agreement_data_money = databuff.groupby([name,r'签署月份'])[r'先收费'].sum()
+
+    with pd.ExcelWriter('agreement_analysis.xlsx') as writer:  
+        agreement_pro_count.to_excel(writer, sheet_name=r'合同数统计', index=False)
+        agreement_data_money.to_excel(writer, sheet_name=r'合同金额统计')
+        writer.save()
     messagebox.showinfo("data generate", "success!")    
     #print(databuff['YearMonth'])    
 
